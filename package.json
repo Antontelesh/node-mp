@@ -9,7 +9,9 @@
   },
   "author": "Anton Telesh <anton_telesh@epam.com>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "csv-parse": "^1.2.2"
+  },
   "devDependencies": {
     "babel": "^6.23.0",
     "babel-preset-es2015": "^6.24.1",
