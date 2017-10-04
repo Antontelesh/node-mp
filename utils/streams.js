@@ -1,8 +1,21 @@
 #!/usr/bin/env node
 
 const yargs = require('yargs')
+const fs = require('fs')
+const path = require('path')
 
 const isCLI = require.main === module
+
+const inputOutput = (_path) =>
+  fs.createReadStream(path.relative(process.cwd(), _path))
+    .pipe(process.stdout)
+
+const perform = ({ action, path }) => {
+  switch (action) {
+    case 'io': return inputOutput(path)
+    default: throw new Error(`Unknown action "${action}"`)
+  }
+}
 
 const argv = yargs
   .options({
@@ -25,4 +38,4 @@ const argv = yargs
   .version(false)
   .argv
 
-console.log(argv)
+perform(argv)
