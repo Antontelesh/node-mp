@@ -23,6 +23,17 @@ const transformFile = (_path) =>
     }))
     .pipe(process.stdout)
 
+const transform = () =>
+  process.stdin
+    .pipe(parse({
+      columns: true,
+    }))
+    .pipe(throught2.obj(function (chunk, enc, cb) {
+      this.push(JSON.stringify(chunk, null, 2))
+      cb()
+    }))
+    .pipe(process.stdout)
+
 const argv = yargs
   .options({
     'help': {
