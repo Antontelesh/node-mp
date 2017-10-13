@@ -7,6 +7,7 @@ const throught2 = require('through2')
 const JSONStream = require('JSONStream')
 const parse = require('csv-parse')
 const { promisify } = require('util')
+const request = require('request')
 
 const readdir = promisify(fs.readdir)
 
@@ -36,21 +37,31 @@ const transform = () =>
   transformCSV(process.stdin)
     .pipe(process.stdout)
 
-const bundleCss = (_path, resultFilename = 'bundle.css') => {
+const bundleCss = async (_path, resultFilename = 'bundle.css') => {
   const dir = path.relative(process.cwd(), _path)
   const destination = fs.createWriteStream(path.join(dir, resultFilename))
-  readdir(dir)
-    .then(files => {
-      const paths = files
-        .filter(file => file.endsWith('.css'))
-        .filter(file => file !== resultFilename)
-        .map(file => path.join(dir, file))
+  const files = await readdir(dir)
 
-      for (let path of paths) {
-        fs.createReadStream(path).pipe(destination)
-      }
-    })
+  const paths = files
+    .filter(file => file.endsWith('.css'))
+    .filter(file => file !== resultFilename)
+    .map(file => path.join(dir, file))
 
+  const streams = paths
+    .map(p => fs.createReadStream(p))
+    .concat(request('https://www.epam.com/etc/clientlibs/foundation/main.min.fc69c13add6eae57cd247a91c7e26a15.css'))
+
+  const write = (sx, dest) => {
+    const [ source, ...rest ] = sx
+    if (source) {
+      source.pipe(destination, { end: false })
+      source.on('end', () => {
+        write(rest, dest)
+      })
+    }
+  }
+
+  write(streams, destination)
 }
 
 const argv = yargs
@@ -107,3 +118,9 @@ const argv = yargs
   .locale('en')
   .version(false)
   .argv
+
+module.exports = {
+  inputOutput,
+  transformFile,
+  bundleCss,
+}
