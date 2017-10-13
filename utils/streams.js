@@ -4,35 +4,54 @@ const yargs = require('yargs')
 const fs = require('fs')
 const path = require('path')
 const throught2 = require('through2')
+const JSONStream = require('JSONStream')
 const parse = require('csv-parse')
+const { promisify } = require('util')
+
+const readdir = promisify(fs.readdir)
 
 const isCLI = require.main === module
 
-const inputOutput = (_path) =>
+const readStream = (_path) =>
   fs.createReadStream(path.relative(process.cwd(), _path))
-    .pipe(process.stdout)
 
-const transformFile = (_path) =>
-  fs.createReadStream(path.relative(process.cwd(), _path))
+const transformCSV = (stream) =>
+  stream
     .pipe(parse({
       columns: true,
     }))
-    .pipe(throught2.obj(function (chunk, enc, cb) {
-      this.push(JSON.stringify(chunk, null, 2))
-      cb()
-    }))
+    .pipe(JSONStream.stringify())
+
+const inputOutput = (_path) =>
+  readStream(_path)
     .pipe(process.stdout)
+
+const transformFile = (_path) => {
+  const normalized = path.relative(process.cwd(), _path)
+  transformCSV(readStream(normalized))
+    .pipe(fs.createWriteStream(normalized.replace('.csv', '.json')))
+}
 
 const transform = () =>
-  process.stdin
-    .pipe(parse({
-      columns: true,
-    }))
-    .pipe(throught2.obj(function (chunk, enc, cb) {
-      this.push(JSON.stringify(chunk, null, 2))
-      cb()
-    }))
+  transformCSV(process.stdin)
     .pipe(process.stdout)
+
+const bundleCss = (_path, resultFilename = 'bundle.css') => {
+  const dir = path.relative(process.cwd(), _path)
+  const destination = fs.createWriteStream(path.join(dir, resultFilename))
+  readdir(dir)
+    .then(files => {
+      const paths = files
+        .filter(file => file.endsWith('.css'))
+        .filter(file => file !== resultFilename)
+        .map(file => path.join(dir, file))
+
+      for (let path of paths) {
+        fs.createReadStream(path).pipe(destination)
+      }
+    })
+
+}
 
 const argv = yargs
   .options({
@@ -83,7 +102,7 @@ const argv = yargs
         demandOption: true,
       }
     },
-    (argv) => bundleCss(path)
+    (argv) => bundleCss(argv.path)
   )
   .locale('en')
   .version(false)
