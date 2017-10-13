@@ -115,9 +115,12 @@ const argv = yargs
     },
     (argv) => bundleCss(argv.path)
   )
+  .demandCommand(1, 'You need at least one command before moving on')
   .locale('en')
   .version(false)
   .argv
+
+console.log(argv)
 
 module.exports = {
   inputOutput,
