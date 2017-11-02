@@ -1,6 +1,4 @@
-import config from './config/config'
-import * as models from './models'
+import app from "./app";
+const port = process.env.PORT || 8080;
 
-console.log('app name:', config)
-new models.Product()
-new models.User()
+app.listen(port, () => console.log(`App listening on port ${port}!`));
